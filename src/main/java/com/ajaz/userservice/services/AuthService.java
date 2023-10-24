@@ -16,6 +16,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMapAdapter;
+import org.springframework.web.client.HttpClientErrorException;
 
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,17 +41,17 @@ public class AuthService {
         this.sessionRepository = sessionRepository;
     }
 
-    public ResponseEntity<UserDto> login(String email, String password){
+    public ResponseEntity<UserDto> login(String email, String password) throws NotFoundException{
 
         Optional<User> userOptional = userRepository.findByEmail(email);
         if(userOptional.isEmpty()){
-            return null;
+            throw new NotFoundException("user does not exist in our database.");
         }
 
         User user = userOptional.get();
 
         if(!bCryptPasswordEncoder.matches(password, user.getPassword())){
-            return null;
+            throw new NotFoundException("Password is incorrect, try again");
         }
 
         String token = RandomStringUtils.randomAlphanumeric(30);
@@ -85,11 +86,11 @@ public class AuthService {
         return UserDto.from(savedUser);
     }
 
-    public ResponseEntity<Void> logout(Long userId, String token) {
+    public ResponseEntity<Void> logout(Long userId, String token) throws NotFoundException {
         Optional<Session> sessionOptional = sessionRepository.findByUser_IdAndToken(userId, token);
 
         if(sessionOptional.isEmpty()){
-            return null;
+            throw new NotFoundException("Session does not exist for the userId");
         }
 
         Session session = sessionOptional.get();

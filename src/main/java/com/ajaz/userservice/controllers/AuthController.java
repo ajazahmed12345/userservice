@@ -19,12 +19,12 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<UserDto> login(@RequestBody LoginRequestDto request){
+    public ResponseEntity<UserDto> login(@RequestBody LoginRequestDto request) throws NotFoundException{
         return authService.login(request.getEmail(), request.getPassword());
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@RequestBody LogoutRequestDto request){
+    public ResponseEntity<Void> logout(@RequestBody LogoutRequestDto request) throws NotFoundException{
         return authService.logout(request.getUserId(), request.getToken());
     }
 
