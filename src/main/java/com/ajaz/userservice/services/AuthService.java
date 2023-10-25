@@ -9,6 +9,8 @@ import com.ajaz.userservice.models.User;
 import com.ajaz.userservice.repositories.RoleRepository;
 import com.ajaz.userservice.repositories.SessionRepository;
 import com.ajaz.userservice.repositories.UserRepository;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.security.MacAlgorithm;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -18,10 +20,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.MultiValueMapAdapter;
 import org.springframework.web.client.HttpClientErrorException;
 
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Optional;
-import java.util.Set;
+import javax.crypto.SecretKey;
+import java.nio.charset.StandardCharsets;
+import java.time.LocalDate;
+import java.util.*;
 
 @Service
 public class AuthService {
@@ -54,8 +56,37 @@ public class AuthService {
             throw new NotFoundException("Password is incorrect, try again");
         }
 
-        String token = RandomStringUtils.randomAlphanumeric(30);
+//        String token = RandomStringUtils.randomAlphanumeric(30);
 
+        MacAlgorithm alg = Jwts.SIG.HS256; //or HS384 or HS256
+        SecretKey key = alg.key().build();
+
+        String message = "{ [email] : [ahmed@gmail.com] ";
+
+
+        byte[] content = message.getBytes(StandardCharsets.UTF_8);
+
+        Map<String, Object> jsonForJwt = new HashMap<>();
+
+        jsonForJwt.put("email", user.getEmail());
+        jsonForJwt.put("roles", user.getRoles());
+        jsonForJwt.put("createdAt", new Date());
+        jsonForJwt.put("expiryAt", new Date(LocalDate.now().plusDays(3).toEpochDay()));
+
+
+
+// Create the compact JWS:
+        String token = Jwts.builder()
+                        .claims(jsonForJwt)
+                        .signWith(key, alg)
+                        .compact();
+
+// Parse the compact JWS:
+//        content = Jwts.parser().verifyWith(key).build().parseSignedContent(token).getPayload();
+
+
+//        auth-token%3AeyJjdHkiOiJ0ZXh0L3BsYWluIiwiYWxnIjoiSFMyNTYifQ.eyBbZW1haWxdIDogW2FobWVkQGdtYWlsLmNvbV0g.9bjJWAE_-HCdSYZ_tl-cTu2jOqMr-8A85ptpWWcNJ1w
+// auth-token%3AeyJhbGciOiJIUzI1NiJ9.eyJjcmVhdGVkQXQiOjE2OTgyMTQ0NTI3NzksInJvbGVzIjpbXSwiZXhwaXJ5QXQiOjE5NjU4LCJlbWFpbCI6ImFqYXpAZ21haWwuY29tIn0.tHg7Bm2tR2JptUc1hl_gP6gNv4QSQGUsL-G4W7wDZsU
         Session session = new Session();
         session.setSessionStatus(SessionStatus.ACTIVE);
         session.setToken(token);
@@ -106,6 +137,11 @@ public class AuthService {
 
         if(sessionOptional.isEmpty()){
             throw new NotFoundException("Session with id = " + userId + " and token = " + token + " does not exist.");
+        }
+
+        Session session = sessionOptional.get();
+        if(!session.getSessionStatus().equals(SessionStatus.ACTIVE)){
+            throw new NotFoundException("Session's status is ENDED " + SessionStatus.ENDED);
         }
 
         return SessionStatus.ACTIVE;
