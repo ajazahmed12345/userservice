@@ -4,6 +4,7 @@ import com.ajaz.userservice.dtos.*;
 import com.ajaz.userservice.exceptions.NotFoundException;
 import com.ajaz.userservice.models.SessionStatus;
 import com.ajaz.userservice.services.AuthService;
+import org.apache.commons.lang3.Validate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -36,11 +37,15 @@ public class AuthController {
     }
 
     @PostMapping("/validate")
-    public ResponseEntity<SessionStatus> validateToken(@RequestBody ValidateTokenRequestDto request) throws NotFoundException{
+    public ResponseEntity<ValidateResponseDto> validateToken(@RequestBody ValidateTokenRequestDto request) throws NotFoundException{
 
-        SessionStatus sessionStatus = authService.validate(request.getUserId(), request.getToken());
+        ValidateResponseDto response = authService.validate(request.getUserId(), request.getToken());
 
-        return new ResponseEntity<>(sessionStatus, HttpStatus.OK);
+        if(response.getSessionStatus().equals(SessionStatus.ENDED)){
+            return null;
+        }
+
+        return new ResponseEntity<>(response, HttpStatus.OK);
     }
 
     @ExceptionHandler(NotFoundException.class)

@@ -1,6 +1,7 @@
 package com.ajaz.userservice.services;
 
 import com.ajaz.userservice.dtos.UserDto;
+import com.ajaz.userservice.dtos.ValidateResponseDto;
 import com.ajaz.userservice.exceptions.NotFoundException;
 import com.ajaz.userservice.models.Role;
 import com.ajaz.userservice.models.Session;
@@ -9,6 +10,8 @@ import com.ajaz.userservice.models.User;
 import com.ajaz.userservice.repositories.RoleRepository;
 import com.ajaz.userservice.repositories.SessionRepository;
 import com.ajaz.userservice.repositories.UserRepository;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -33,6 +36,8 @@ public class AuthService {
 
     private BCryptPasswordEncoder bCryptPasswordEncoder;
     private final SessionRepository sessionRepository;
+
+    private SecretKey key = null;
 
 
     public AuthService(UserRepository userRepository, RoleRepository roleRepository, BCryptPasswordEncoder bCryptPasswordEncoder,
@@ -61,7 +66,9 @@ public class AuthService {
         MacAlgorithm alg = Jwts.SIG.HS256; //or HS384 or HS256
         SecretKey key = alg.key().build();
 
-        String message = "{ [email] : [ahmed@gmail.com] ";
+        this.key = key;
+
+        String message = "{ [email] : [ahmed@gmail.com]} ";
 
 
         byte[] content = message.getBytes(StandardCharsets.UTF_8);
@@ -80,6 +87,8 @@ public class AuthService {
                         .claims(jsonForJwt)
                         .signWith(key, alg)
                         .compact();
+
+        System.out.println(key);
 
 // Parse the compact JWS:
 //        content = Jwts.parser().verifyWith(key).build().parseSignedContent(token).getPayload();
@@ -132,19 +141,69 @@ public class AuthService {
         return ResponseEntity.ok().build();
     }
 
-    public SessionStatus validate(Long userId, String token) throws NotFoundException {
+    public ValidateResponseDto validate(Long userId, String token) throws NotFoundException {
         Optional<Session> sessionOptional = sessionRepository.findByUser_IdAndToken(userId, token);
 
         if(sessionOptional.isEmpty()){
-            throw new NotFoundException("Session with id = " + userId + " and token = " + token + " does not exist.");
+//            throw new NotFoundException("Session with id = " + userId + " and token = " + token + " does not exist.");
+
+            return new ValidateResponseDto(null, null, null, null, null, SessionStatus.ENDED);
+
         }
 
         Session session = sessionOptional.get();
         if(!session.getSessionStatus().equals(SessionStatus.ACTIVE)){
-            throw new NotFoundException("Session's status is ENDED " + SessionStatus.ENDED);
+//            throw new NotFoundException("Session's status is ENDED " + SessionStatus.ENDED);
+            return new ValidateResponseDto(null, null, null, null, null, SessionStatus.ENDED);
         }
 
-        return SessionStatus.ACTIVE;
+        MacAlgorithm alg = Jwts.SIG.HS256; //or HS384 or HS256
+
+        System.out.println(key);
+
+        String savedToken = session.getToken();
+
+
+
+        Jws<Claims> claimsJws = Jwts.parser().verifyWith(this.key).build().parseSignedClaims(token);
+//
+        String email = (String)claimsJws.getPayload().get("email");
+        List<Role> roles = (List<Role>) claimsJws.getPayload().get("roles");
+
+        Long createdAtt = (Long)claimsJws.getPayload().get("createdAt");
+
+        System.out.println(createdAtt);
+
+//        Date createdAt = (Date) claimsJws.getPayload().get("createdAt");
+//        Long expiryAt = (Long) claimsJws.getPayload().get("expiryAt");
+
+        Date createdAt = new Date();
+        Date expiryAt = new Date();
+
+        if(createdAt.before(new Date())){
+            return new ValidateResponseDto(null, null, null, null, null, SessionStatus.ENDED);
+        }
+
+        Optional<User> userOptional = userRepository.findById(userId);
+        if(userOptional.isEmpty()){
+            return new ValidateResponseDto(null, null, null, null, null, SessionStatus.ENDED);
+        }
+
+        User user = userOptional.get();
+
+        ValidateResponseDto response = new ValidateResponseDto(
+            userId,
+                email,
+                roles, createdAt,
+                expiryAt,
+                SessionStatus.ACTIVE
+        );
+
+
+//        System.out.println("i am at line 200");
+
+
+        return response;
 
     }
 }
