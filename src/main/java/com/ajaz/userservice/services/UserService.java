@@ -52,7 +52,7 @@ public class UserService {
         Set<Role> rolesSet = new HashSet<>();
 
         userRoles.forEach(e -> rolesSet.add(e));
-        user.setRoles(rolesSet);
+        //user.setRoles(rolesSet);
 
         User savedUser = userRepository.save(user);
 

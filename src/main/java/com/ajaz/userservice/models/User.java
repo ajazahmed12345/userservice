@@ -1,6 +1,10 @@
 package com.ajaz.userservice.models;
 
+import com.ajaz.userservice.security.CustomSpringUserDetails;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
 import jakarta.persistence.Entity;
+import jakarta.persistence.FetchType;
 import jakarta.persistence.ManyToMany;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
@@ -15,13 +19,14 @@ import java.util.Set;
 @Entity
 @AllArgsConstructor
 @NoArgsConstructor
-
+@JsonDeserialize(as = User.class)
 public class User extends BaseModel{
 
     private String email;
     private String password;
 
-    @ManyToMany
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JsonIgnore
     private Set<Role> roles = new HashSet<>();
 
 }

@@ -10,9 +10,9 @@ import com.ajaz.userservice.models.User;
 import com.ajaz.userservice.repositories.RoleRepository;
 import com.ajaz.userservice.repositories.SessionRepository;
 import com.ajaz.userservice.repositories.UserRepository;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jws;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.impl.DefaultJwtParser;
+import io.jsonwebtoken.impl.DefaultJwtParserBuilder;
 import io.jsonwebtoken.security.MacAlgorithm;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.http.HttpHeaders;
@@ -76,7 +76,7 @@ public class AuthService {
         Map<String, Object> jsonForJwt = new HashMap<>();
 
         jsonForJwt.put("email", user.getEmail());
-        jsonForJwt.put("roles", user.getRoles());
+        //jsonForJwt.put("roles", user.getRoles());
         jsonForJwt.put("createdAt", new Date());
         jsonForJwt.put("expiryAt", new Date(LocalDate.now().plusDays(3).toEpochDay()));
 
@@ -87,6 +87,26 @@ public class AuthService {
                         .claims(jsonForJwt)
                         .signWith(key, alg)
                         .compact();
+
+//        Jwt<?, ?> jwt = new Defaul
+
+//        String[] splitToken = token.split("\\.");
+//        String unsignedToken = splitToken[0] + "." + splitToken[1] + ".";
+
+//        DefaultJwtParser parser = new DefaultJwtParser();
+//        DefaultJwtParserBuilder builderObj = new DefaultJwtParserBuilder();
+//        JwtParser parser = builderObj.build();
+//
+//        Jwt<?, ?> jwt = parser.parse(unsignedToken);
+
+
+//        Jwt<?, ?> jwt = new DefaultJwtParserBuilder().build().parse(token);
+
+
+//        int i = token.lastIndexOf('.');
+//        String withoutSignature = token.substring(0, i+1);
+//        Jws<Claims> untrusted = Jwts.parser().build().parseSignedClaims(withoutSignature);
+
 
         System.out.println(key);
 
@@ -164,9 +184,10 @@ public class AuthService {
         String savedToken = session.getToken();
 
 
-
         Jws<Claims> claimsJws = Jwts.parser().verifyWith(this.key).build().parseSignedClaims(token);
 //
+//        FefaultJwt
+
         String email = (String)claimsJws.getPayload().get("email");
         List<Role> roles = (List<Role>) claimsJws.getPayload().get("roles");
 
